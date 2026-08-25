@@ -9,7 +9,7 @@
 // token is captured here, once per sign-in, and handed to the
 // store-google-token Edge Function — it is never kept in the browser.
 
-import { getSupabase } from "./supabaseClient.js";
+import { getSupabase, invokeFunction } from "./supabaseClient.js";
 
 const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
 
@@ -47,11 +47,11 @@ export function watchAuth(onChange) {
   supabase.auth.onAuthStateChange(async (event, session) => {
     if (event === "SIGNED_IN" && session?.provider_refresh_token) {
       try {
-        await supabase.functions.invoke("store-google-token", {
+        await invokeFunction("store-google-token", {
           body: { refresh_token: session.provider_refresh_token },
         });
       } catch (err) {
-        console.error("Could not persist Google refresh token:", err);
+        console.error("Could not persist Google refresh token:", err.message);
       }
     }
     onChange(session);

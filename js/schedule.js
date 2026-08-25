@@ -3,17 +3,18 @@
 // Google refresh token (captured once at sign-in, see auth.js) to pull
 // today's events server-side.
 
-import { getSupabase } from "./supabaseClient.js";
+import { invokeFunction } from "./supabaseClient.js";
 
 export async function fetchTodaysEvents() {
-  const supabase = getSupabase();
-  const { data, error } = await supabase.functions.invoke("get-schedule");
-  if (error) throw new Error(error.message || "Could not load your calendar.");
-  if (data?.error === "not_connected") {
-    throw new Error("Google Calendar isn't connected yet — try signing out and back in.");
+  try {
+    const data = await invokeFunction("get-schedule");
+    return data.events || [];
+  } catch (err) {
+    if (err.message === "not_connected") {
+      throw new Error("Google Calendar isn't connected yet — try signing out and back in.");
+    }
+    throw err;
   }
-  if (data?.error) throw new Error(data.error);
-  return data.events || [];
 }
 
 function formatTime(iso, allDay) {

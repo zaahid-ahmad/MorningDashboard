@@ -2,16 +2,10 @@
 // Calls the get-weather Supabase Edge Function, which holds the real
 // OpenWeatherMap key server-side and does the geocoding + lookup.
 
-import { getSupabase } from "./supabaseClient.js";
+import { invokeFunction } from "./supabaseClient.js";
 
 export async function fetchWeather(settings) {
-  const supabase = getSupabase();
-  const { data, error } = await supabase.functions.invoke("get-weather", {
-    body: { address: settings.homeAddress },
-  });
-  if (error) throw new Error(error.message || "Could not load weather.");
-  if (data?.error) throw new Error(data.error);
-  return data;
+  return invokeFunction("get-weather", { body: { address: settings.homeAddress } });
 }
 
 function iconEmoji(code) {

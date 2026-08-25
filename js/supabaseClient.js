@@ -16,3 +16,29 @@ export function getSupabase() {
   }
   return client;
 }
+
+/**
+ * Wraps supabase.functions.invoke(). On a non-2xx response, the client's
+ * own error.message is always the generic "Edge Function returned a
+ * non-2xx status code" — the actual `{ error: "..." }` body the function
+ * sent is unread on error.context (a Response). This reads it so callers
+ * see the real reason instead.
+ */
+export async function invokeFunction(name, options) {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.functions.invoke(name, options);
+  if (error) {
+    let message = error.message || "Request failed.";
+    if (error.context && typeof error.context.json === "function") {
+      try {
+        const body = await error.context.json();
+        if (body?.error) message = body.error;
+      } catch {
+        // response body wasn't JSON; fall back to the generic message
+      }
+    }
+    throw new Error(message);
+  }
+  if (data?.error) throw new Error(data.error);
+  return data;
+}

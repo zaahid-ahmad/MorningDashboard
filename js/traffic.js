@@ -2,16 +2,11 @@
 // Calls the get-commute Supabase Edge Function, which holds the real
 // TomTom key server-side and does the geocoding + routing.
 
-import { getSupabase } from "./supabaseClient.js";
+import { invokeFunction } from "./supabaseClient.js";
 
 export async function fetchCommute(settings) {
-  const supabase = getSupabase();
-  const { data, error } = await supabase.functions.invoke("get-commute", {
-    body: { home: settings.homeAddress, work: settings.workAddress },
-  });
-  if (error) throw new Error(error.message || "Could not load traffic data.");
-  if (data?.error) throw new Error(data.error);
-  return data; // { toWork, toHome }
+  // { toWork, toHome }
+  return invokeFunction("get-commute", { body: { home: settings.homeAddress, work: settings.workAddress } });
 }
 
 function formatDuration(totalSeconds) {
