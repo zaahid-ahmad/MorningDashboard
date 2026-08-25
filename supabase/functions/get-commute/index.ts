@@ -20,19 +20,38 @@ async function geocode(address: string, apiKey: string) {
   return { lat, lon };
 }
 
+// Picks the road/street mentioned in the most turn-by-turn instructions, as
+// a human-readable stand-in for "this route" (TomTom doesn't otherwise name
+// a route as a whole, only leg-by-leg).
+function mainRoadLabel(route: any): string {
+  const instructions = route.guidance?.instructions ?? [];
+  const tally = new Map<string, number>();
+  for (const instr of instructions) {
+    const roads: string[] = instr.roadNumbers?.length ? instr.roadNumbers : instr.street ? [instr.street] : [];
+    for (const road of roads) tally.set(road, (tally.get(road) ?? 0) + 1);
+  }
+  if (!tally.size) return "Route";
+  const [topRoad] = [...tally.entries()].sort((a, b) => b[1] - a[1])[0];
+  return `via ${topRoad}`;
+}
+
 async function routeBetween(from: { lat: number; lon: number }, to: { lat: number; lon: number }, apiKey: string) {
-  const url = `https://api.tomtom.com/routing/1/calculateRoute/${from.lat},${from.lon}:${to.lat},${to.lon}/json?key=${apiKey}&traffic=true&computeTravelTimeFor=all`;
+  const url = `https://api.tomtom.com/routing/1/calculateRoute/${from.lat},${from.lon}:${to.lat},${to.lon}/json?key=${apiKey}&traffic=true&computeTravelTimeFor=all&maxAlternatives=2&instructionsType=text&language=en-US`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Routing failed (${res.status})`);
   const data = await res.json();
-  const summary = data.routes?.[0]?.summary;
-  if (!summary) throw new Error("No route found between those addresses.");
-  return {
-    travelTimeSec: summary.travelTimeInSeconds,
-    normalTimeSec: summary.noTrafficTravelTimeInSeconds ?? summary.travelTimeInSeconds,
-    delaySec: summary.trafficDelayInSeconds ?? 0,
-    distanceKm: Math.round((summary.lengthInMeters ?? 0) / 100) / 10,
-  };
+  const routes = data.routes ?? [];
+  if (!routes.length) throw new Error("No route found between those addresses.");
+
+  return routes
+    .map((route: any) => ({
+      via: mainRoadLabel(route),
+      travelTimeSec: route.summary.travelTimeInSeconds,
+      normalTimeSec: route.summary.noTrafficTravelTimeInSeconds ?? route.summary.travelTimeInSeconds,
+      delaySec: route.summary.trafficDelayInSeconds ?? 0,
+      distanceKm: Math.round((route.summary.lengthInMeters ?? 0) / 100) / 10,
+    }))
+    .sort((a: any, b: any) => a.travelTimeSec - b.travelTimeSec);
 }
 
 Deno.serve(async (req) => {

@@ -81,7 +81,10 @@ Deno.serve(async (req) => {
     const evRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`, {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
-    if (!evRes.ok) throw new Error(`Calendar lookup failed (${evRes.status})`);
+    if (!evRes.ok) {
+      const errBody = await evRes.text();
+      throw new Error(`Calendar lookup failed (${evRes.status}): ${errBody}`);
+    }
     const evData = await evRes.json();
 
     const events = (evData.items || []).map((ev: any) => ({

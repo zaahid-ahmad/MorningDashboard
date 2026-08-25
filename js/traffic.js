@@ -4,9 +4,31 @@
 
 import { invokeFunction } from "./supabaseClient.js";
 
+const ROUTE_CHOICE_KEY = "morning-dashboard-route-choice-v1";
+
 export async function fetchCommute(settings) {
-  // { toWork, toHome }
+  // { toWork: Route[], toHome: Route[] }, fastest first
   return invokeFunction("get-commute", { body: { home: settings.homeAddress, work: settings.workAddress } });
+}
+
+function loadRouteChoice() {
+  try {
+    return JSON.parse(localStorage.getItem(ROUTE_CHOICE_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveRouteChoice(direction, via) {
+  const choice = loadRouteChoice();
+  choice[direction] = via;
+  localStorage.setItem(ROUTE_CHOICE_KEY, JSON.stringify(choice));
+}
+
+// Falls back to the fastest route (routes[0]) if there's no saved
+// preference, or the saved one no longer appears in this fetch's results.
+function pickRoute(routes, preferredVia) {
+  return routes.find((r) => r.via === preferredVia) || routes[0];
 }
 
 function formatDuration(totalSeconds) {
@@ -24,18 +46,49 @@ function delayInfo(delaySec) {
   return { className: "delay-heavy", label: `+${mins} min delay` };
 }
 
-function renderRow(label, leg) {
-  const row = document.createElement("div");
-  row.className = "commute-row";
-  const delay = delayInfo(leg.delaySec);
-  row.innerHTML = `
+function renderDirection(label, direction, routes, onPick) {
+  const selected = pickRoute(routes, loadRouteChoice()[direction]);
+  const delay = delayInfo(selected.delaySec);
+
+  const wrap = document.createElement("div");
+  wrap.className = "commute-direction";
+
+  const header = document.createElement("div");
+  header.className = "commute-row";
+  header.innerHTML = `
     <span class="commute-label">${escapeHtml(label)}</span>
     <span>
-      <span class="commute-time">${formatDuration(leg.travelTimeSec)}</span>
+      <span class="commute-time">${formatDuration(selected.travelTimeSec)}</span>
       <span class="commute-delay ${delay.className}">${delay.label}</span>
     </span>
   `;
-  return row;
+  wrap.appendChild(header);
+
+  if (routes.length > 1) {
+    const options = document.createElement("div");
+    options.className = "route-options";
+    for (const route of routes) {
+      const isSelected = route.via === selected.via;
+      const optDelay = delayInfo(route.delaySec);
+
+      const opt = document.createElement("label");
+      opt.className = "route-option" + (isSelected ? " route-option-selected" : "");
+      opt.innerHTML = `
+        <input type="radio" name="route-${direction}" ${isSelected ? "checked" : ""} />
+        <span class="route-option-via">${escapeHtml(route.via)}</span>
+        <span class="route-option-time">${formatDuration(route.travelTimeSec)}</span>
+        <span class="commute-delay ${optDelay.className}">${optDelay.label}</span>
+      `;
+      opt.querySelector("input").addEventListener("change", () => {
+        saveRouteChoice(direction, route.via);
+        onPick();
+      });
+      options.appendChild(opt);
+    }
+    wrap.appendChild(options);
+  }
+
+  return wrap;
 }
 
 export function renderCommute(settings, data) {
@@ -44,9 +97,13 @@ export function renderCommute(settings, data) {
   status.textContent = "Live";
   status.className = "card-status status-ok";
 
-  body.innerHTML = "";
-  body.appendChild(renderRow(`Leave at ${settings.morningDeparture} → Work`, data.toWork));
-  body.appendChild(renderRow(`Leave at ${settings.eveningDeparture} → Home`, data.toHome));
+  function draw() {
+    body.innerHTML = "";
+    body.appendChild(renderDirection(`Leave at ${settings.morningDeparture} → Work`, "toWork", data.toWork, draw));
+    body.appendChild(renderDirection(`Leave at ${settings.eveningDeparture} → Home`, "toHome", data.toHome, draw));
+  }
+
+  draw();
 }
 
 export function renderCommuteError(message) {

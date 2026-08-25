@@ -29,14 +29,21 @@ export async function invokeFunction(name, options) {
   const { data, error } = await supabase.functions.invoke(name, options);
   if (error) {
     let message = error.message || "Request failed.";
-    if (error.context && typeof error.context.json === "function") {
+    let rawBody = null;
+    if (error.context && typeof error.context.clone === "function") {
       try {
-        const body = await error.context.json();
-        if (body?.error) message = body.error;
+        rawBody = await error.context.clone().json();
+        message = rawBody?.error || rawBody?.message || rawBody?.msg || message;
       } catch {
-        // response body wasn't JSON; fall back to the generic message
+        try {
+          rawBody = await error.context.clone().text();
+          if (rawBody) message = rawBody;
+        } catch {
+          // response body couldn't be read at all; stick with the generic message
+        }
       }
     }
+    console.error(`${name} failed (status ${error.context?.status}):`, rawBody ?? message);
     throw new Error(message);
   }
   if (data?.error) throw new Error(data.error);
