@@ -189,11 +189,23 @@ export function initSettingsModal({ onSave }) {
   }
 
   function open() {
-    const settings = loadSettings();
-    ensureMap();
+    // Show the modal no matter what — a failure below (e.g. Leaflet's CDN
+    // script didn't load) should never make this button look like it's
+    // doing nothing; it should visibly explain what's broken instead.
+    modal.hidden = false;
 
+    const settings = loadSettings();
     fields.morningDeparture.value = settings.morningDeparture;
     fields.eveningDeparture.value = settings.eveningDeparture;
+
+    if (typeof L === "undefined") {
+      document.getElementById("location-map").innerHTML =
+        '<p class="empty-state">Map failed to load — check your internet connection and reload the page.</p>';
+      return;
+    }
+
+    ensureMap();
+
     pending = { homeLocation: settings.homeLocation, workLocation: settings.workLocation };
 
     if (settings.homeLocation) placeMarker("home", settings.homeLocation);
@@ -204,7 +216,6 @@ export function initSettingsModal({ onSave }) {
     // Nudge straight to whichever one still needs setting.
     switchTab(settings.homeLocation && !settings.workLocation ? "work" : "home");
 
-    modal.hidden = false;
     // The map was sized while its container was display:none; Leaflet needs
     // a resize pass once it's actually visible before it'll render right.
     requestAnimationFrame(() => {

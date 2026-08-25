@@ -65,6 +65,12 @@ function renderRouteMap(containerId, routes, selectedVia, onSelect) {
   const withPaths = routes.filter((r) => r.path?.length);
   if (!withPaths.length) return null;
 
+  if (typeof L === "undefined") {
+    // Leaflet's CDN script didn't load (offline, blocked, etc.) — leave the
+    // route list below as the fallback rather than throwing here.
+    return null;
+  }
+
   const map = L.map(containerId, { zoomControl: false, scrollWheelZoom: false });
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
