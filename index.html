@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Morning Dashboard</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <h1>Morning Dashboard</h1>
+      </div>
+      <div class="topbar-actions">
+        <span id="clock" class="clock"></span>
+        <button id="auth-btn" class="btn btn-secondary">Sign in with Google</button>
+        <button id="refresh-btn" class="icon-btn" title="Refresh all data">&#8635;</button>
+        <button id="settings-btn" class="icon-btn" title="Settings">&#9881;</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <p id="date-line" class="date-line"></p>
+
+    <div class="card-grid">
+
+      <!-- Weather Card -->
+      <section class="card" id="weather-card">
+        <div class="card-header">
+          <h2>Weather</h2>
+          <span class="card-status" id="weather-status">Signed out</span>
+        </div>
+        <div class="card-body" id="weather-body">
+          <p class="empty-state">Sign in with Google (top right) to see today's forecast.</p>
+        </div>
+      </section>
+
+      <!-- Commute Card -->
+      <section class="card" id="commute-card">
+        <div class="card-header">
+          <h2>Commute</h2>
+          <span class="card-status" id="commute-status">Signed out</span>
+        </div>
+        <div class="card-body" id="commute-body">
+          <p class="empty-state">Sign in with Google (top right) to see live traffic times.</p>
+        </div>
+      </section>
+
+      <!-- Schedule Card -->
+      <section class="card" id="schedule-card">
+        <div class="card-header">
+          <h2>Today's Schedule</h2>
+          <span class="card-status" id="schedule-status">Signed out</span>
+        </div>
+        <div class="card-body" id="schedule-body">
+          <p class="empty-state">Sign in with Google (top right) to see today's events.</p>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal-overlay" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Settings</h2>
+        <button id="close-settings-btn" class="icon-btn" title="Close">&times;</button>
+      </div>
+      <form id="settings-form" class="modal-body">
+
+        <fieldset>
+          <legend>Location &amp; Commute</legend>
+          <label>
+            Home address
+            <input type="text" id="home-address" placeholder="e.g. Sandton, Johannesburg" />
+          </label>
+          <label>
+            Work address
+            <input type="text" id="work-address" placeholder="e.g. Rosebank, Johannesburg" />
+          </label>
+          <div class="field-row">
+            <label>
+              Leave for work at
+              <input type="time" id="morning-departure" value="07:00" />
+            </label>
+            <label>
+              Leave for home at
+              <input type="time" id="evening-departure" value="17:00" />
+            </label>
+          </div>
+        </fieldset>
+
+        <p class="settings-note">Saved only in this browser. Weather, traffic, and calendar data come from your own backend (Supabase Edge Functions) — see README.md for one-time setup.</p>
+
+        <div class="modal-actions">
+          <span></span>
+          <button type="submit" class="btn btn-primary">Save &amp; Refresh</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

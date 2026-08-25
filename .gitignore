@@ -1,0 +1,11 @@
+.DS_Store
+Thumbs.db
+node_modules/
+*.log
+client_secret.json
+
+# Supabase CLI local state (never contains secrets, just local metadata)
+.branches
+.temp
+supabase/.temp
+
