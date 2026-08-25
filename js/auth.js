@@ -43,6 +43,7 @@ export async function signOut() {
  */
 export function watchAuth(onChange) {
   const supabase = getSupabase();
+  let initialized = false;
 
   supabase.auth.onAuthStateChange(async (event, session) => {
     if (event === "SIGNED_IN" && session?.provider_refresh_token) {
@@ -54,8 +55,16 @@ export function watchAuth(onChange) {
         console.error("Could not persist Google refresh token:", err.message);
       }
     }
+    initialized = true;
     onChange(session);
   });
 
-  supabase.auth.getSession().then(({ data }) => onChange(data.session));
+  // Modern supabase-js fires onAuthStateChange immediately on subscribe
+  // (event "INITIAL_SESSION"), which made this getSession() call redundant —
+  // both fired on every page load, doubling every refreshAll() (and every
+  // TomTom/OpenWeatherMap/Google Calendar request with it). Kept only as a
+  // fallback for older client versions that don't emit that initial event.
+  supabase.auth.getSession().then(({ data }) => {
+    if (!initialized) onChange(data.session);
+  });
 }
