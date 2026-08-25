@@ -190,6 +190,17 @@ body {
 .commute-delay.delay-some { color: var(--warn); }
 .commute-delay.delay-heavy { color: var(--danger); }
 
+.route-map {
+  height: 150px;
+  border-radius: 8px;
+  margin: 6px 0;
+  border: 1px solid var(--border);
+}
+.route-map .leaflet-control-attribution {
+  font-size: 9px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
 .route-options {
   display: flex;
   flex-direction: column;
@@ -336,6 +347,95 @@ input[type="text"]:focus, input[type="time"]:focus {
   color: var(--text-faint);
   line-height: 1.5;
   margin: 4px 0 18px;
+}
+
+/* Location picker (Settings modal) */
+.location-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.location-tab {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-soft);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.location-tab:hover { background: var(--border); }
+.location-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.location-input-wrap { position: relative; margin-top: 0; }
+.location-input-wrap input[type="text"] { margin-top: 0; padding-right: 30px; }
+.location-clear {
+  position: absolute;
+  right: 2px;
+  top: 5px;
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 6px 8px;
+}
+.location-clear:hover { color: var(--text); }
+
+.location-suggestions {
+  position: absolute;
+  /* Must beat Leaflet's own pane z-indexes (it goes up to ~700) since this
+     dropdown sits directly above the map and needs to render over it. */
+  z-index: 1000;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  max-height: 180px;
+  overflow-y: auto;
+}
+.location-suggestion {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+.location-suggestion:hover { background: var(--bg); }
+
+.location-selected {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-soft);
+  min-height: 14px;
+}
+
+.location-map {
+  height: 220px;
+  border-radius: 8px;
+  margin: 10px 0 4px;
+  border: 1px solid var(--border);
+}
+
+.location-pin span {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
 }
 
 .modal-actions {

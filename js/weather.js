@@ -1,11 +1,14 @@
 // weather.js
 // Calls the get-weather Supabase Edge Function, which holds the real
-// OpenWeatherMap key server-side and does the geocoding + lookup.
+// OpenWeatherMap key server-side. The home location's coordinates are
+// already resolved (picked from the Settings map), so no geocoding
+// happens here or server-side — just a direct lookup by lat/lon.
 
 import { invokeFunction } from "./supabaseClient.js";
 
 export async function fetchWeather(settings) {
-  return invokeFunction("get-weather", { body: { address: settings.homeAddress } });
+  const { lat, lon } = settings.homeLocation;
+  return invokeFunction("get-weather", { body: { lat, lon } });
 }
 
 function iconEmoji(code) {

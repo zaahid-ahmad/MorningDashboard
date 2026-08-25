@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Morning Dashboard</title>
 <link rel="stylesheet" href="style.css" />
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+  crossorigin=""
+/>
 </head>
 <body>
 
@@ -75,14 +81,22 @@
 
         <fieldset>
           <legend>Location &amp; Commute</legend>
-          <label>
-            Home address
-            <input type="text" id="home-address" placeholder="e.g. Sandton, Johannesburg" />
-          </label>
-          <label>
-            Work address
-            <input type="text" id="work-address" placeholder="e.g. Rosebank, Johannesburg" />
-          </label>
+
+          <div class="location-tabs" role="tablist">
+            <button type="button" class="location-tab active" id="tab-home" role="tab">🏠 Home</button>
+            <button type="button" class="location-tab" id="tab-work" role="tab">💼 Work</button>
+          </div>
+
+          <div class="location-input-wrap">
+            <input type="text" id="location-search" placeholder="Search for an address…" autocomplete="off" />
+            <button type="button" id="location-clear" class="location-clear" title="Clear">&times;</button>
+            <div class="location-suggestions" id="location-suggestions" hidden></div>
+          </div>
+
+          <div id="location-map" class="location-map"></div>
+          <p class="location-selected" id="location-selected"></p>
+          <p class="settings-note">Search, click the map, or drag a pin to set the selected location.</p>
+
           <div class="field-row">
             <label>
               Leave for work at
@@ -105,6 +119,11 @@
     </div>
   </div>
 
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>

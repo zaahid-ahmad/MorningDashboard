@@ -1,14 +1,26 @@
 // traffic.js
 // Calls the get-commute Supabase Edge Function, which holds the real
-// TomTom key server-side and does the geocoding + routing.
+// TomTom key server-side and does the routing. Home/work coordinates are
+// already resolved (picked from the Settings map), so no geocoding
+// happens here or server-side.
 
 import { invokeFunction } from "./supabaseClient.js";
 
 const ROUTE_CHOICE_KEY = "morning-dashboard-route-choice-v1";
+const ROUTE_COLOR = "#2f6fed";
+const ROUTE_COLOR_MUTED = "#9a9ea5";
 
 export async function fetchCommute(settings) {
+  const { homeLocation, workLocation } = settings;
   // { toWork: Route[], toHome: Route[] }, fastest first
-  return invokeFunction("get-commute", { body: { home: settings.homeAddress, work: settings.workAddress } });
+  return invokeFunction("get-commute", {
+    body: {
+      homeLat: homeLocation.lat,
+      homeLon: homeLocation.lon,
+      workLat: workLocation.lat,
+      workLon: workLocation.lon,
+    },
+  });
 }
 
 function loadRouteChoice() {
@@ -46,7 +58,37 @@ function delayInfo(delaySec) {
   return { className: "delay-heavy", label: `+${mins} min delay` };
 }
 
-function renderDirection(label, direction, routes, onPick) {
+// Draws every route as a line on a small map — the selected one in accent
+// blue and on top, the rest muted grey underneath — and lets clicking any
+// line pick that route, the same way Google Maps' route alternatives work.
+function renderRouteMap(containerId, routes, selectedVia, onSelect) {
+  const withPaths = routes.filter((r) => r.path?.length);
+  if (!withPaths.length) return null;
+
+  const map = L.map(containerId, { zoomControl: false, scrollWheelZoom: false });
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19,
+  }).addTo(map);
+
+  const lines = [];
+  for (const route of withPaths) {
+    const isSelected = route.via === selectedVia;
+    const line = L.polyline(route.path, {
+      color: isSelected ? ROUTE_COLOR : ROUTE_COLOR_MUTED,
+      weight: isSelected ? 5 : 3,
+      opacity: isSelected ? 0.95 : 0.55,
+    }).addTo(map);
+    line.on("click", () => onSelect(route));
+    if (isSelected) line.bringToFront();
+    lines.push(line);
+  }
+
+  map.fitBounds(L.featureGroup(lines).getBounds().pad(0.15), { maxZoom: 15 });
+  return map;
+}
+
+function renderDirection(label, direction, routes, onPick, registerMap) {
   const selected = pickRoute(routes, loadRouteChoice()[direction]);
   const delay = delayInfo(selected.delaySec);
 
@@ -63,6 +105,23 @@ function renderDirection(label, direction, routes, onPick) {
     </span>
   `;
   wrap.appendChild(header);
+
+  if (routes.some((r) => r.path?.length)) {
+    const mapId = `route-map-${direction}-${Math.random().toString(36).slice(2, 8)}`;
+    const mapDiv = document.createElement("div");
+    mapDiv.className = "route-map";
+    mapDiv.id = mapId;
+    wrap.appendChild(mapDiv);
+    // Deferred one frame so mapDiv has real layout size (it needs to be in
+    // the live DOM first) before Leaflet measures its container.
+    requestAnimationFrame(() => {
+      const map = renderRouteMap(mapId, routes, selected.via, (route) => {
+        saveRouteChoice(direction, route.via);
+        onPick();
+      });
+      if (map) registerMap(map);
+    });
+  }
 
   if (routes.length > 1) {
     const options = document.createElement("div");
@@ -97,10 +156,16 @@ export function renderCommute(settings, data) {
   status.textContent = "Live";
   status.className = "card-status status-ok";
 
+  let activeMaps = [];
+
   function draw() {
+    for (const map of activeMaps) map.remove();
+    activeMaps = [];
+
     body.innerHTML = "";
-    body.appendChild(renderDirection(`Leave at ${settings.morningDeparture} → Work`, "toWork", data.toWork, draw));
-    body.appendChild(renderDirection(`Leave at ${settings.eveningDeparture} → Home`, "toHome", data.toHome, draw));
+    const registerMap = (map) => activeMaps.push(map);
+    body.appendChild(renderDirection(`Leave at ${settings.morningDeparture} → Work`, "toWork", data.toWork, draw, registerMap));
+    body.appendChild(renderDirection(`Leave at ${settings.eveningDeparture} → Home`, "toHome", data.toHome, draw, registerMap));
   }
 
   draw();
